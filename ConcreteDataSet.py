@@ -1,6 +1,7 @@
 import importlib_resources
 import numpy as np
 import scipy.linalg as linalg
+
 from matplotlib.pyplot import (
     cm,
     figure,
