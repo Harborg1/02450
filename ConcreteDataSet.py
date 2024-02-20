@@ -30,11 +30,13 @@ K = 16
 nD = range(6)
 
 
+
 # Load Matlab data file to python dict structure
 # and extract variables of interest
 traindata = loadmat(filename)["traindata"]
 X = traindata[:, 1:]
 y = traindata[:, 0]
+
 
 N, M = X.shape
 C = len(n)
