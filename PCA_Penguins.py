@@ -1,3 +1,8 @@
+
+# SOURCES:
+# https://builtin.com/machine-learning/pca-in-python
+# exercise 2.2 (a)
+
 from matplotlib import figure
 import pandas as pd
 from scipy import linalg
