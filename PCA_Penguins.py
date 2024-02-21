@@ -5,8 +5,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt 
 import numpy as np
+import os
 
-file_path = 'C:\\Users\\Christian\\OneDrive\\Dokumenter\\GitHub\\02450\\penguins.xls'
+path=os.getcwd()
+file_path = os.path.join(path, "penguins.xls")
 
 # Read the Excel file into a DataFrame
 data = pd.read_excel(file_path)
