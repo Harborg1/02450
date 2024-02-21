@@ -1,7 +1,10 @@
+from matplotlib import figure
 import pandas as pd
+from scipy import linalg
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt 
+import numpy as np
 
 file_path = 'C:\\Users\\Christian\\OneDrive\\Dokumenter\\GitHub\\02450\\penguins.xls'
 
@@ -20,14 +23,43 @@ target = ['species']
 X = data.loc[:, features].values
 y = data.loc[:,target].values
 # Standardize features
+
 x = StandardScaler().fit_transform(X)
 
-print(X)
-print(y)
+# PCA by computing SVD of Y
+U, S, V = linalg.svd(x, full_matrices=False)
+
+# U = mat(U)
+V = V.T
+
+# Compute variance explained by principal components
+rho = (S * S) / (S * S).sum()
+
+# Project data onto principal component space
+Z = x @ V
+
+# Plot variance explained
+plt.figure()
+plt.plot(rho, "o-")
+plt.title("Variance explained by principal components")
+plt.xlabel("Principal component")
+plt.ylabel("Variance explained value")
+
 
 pca = PCA(n_components=2)
 
 principalComponents = pca.fit_transform(x)
+
+U = pca.components_
+
+explained_variance = pca.explained_variance_ratio_
+
+print("Variance explained by the first principal component:", explained_variance[0])
+print("Variance explained by the second principal component:", explained_variance[1])
+
+
+#print(principalComponents)
+
 
 principalDf = pd.DataFrame(data = principalComponents
              , columns = ['principal component 1', 'principal component 2'])
@@ -37,13 +69,12 @@ finalDf = pd.concat([principalDf, data[['species']]], axis = 1)
 
 fig = plt.figure(figsize = (8,8))
 ax = fig.add_subplot(1,1,1) 
-ax.set_xlabel('Principal Component 1', fontsize = 15)
-ax.set_ylabel('Principal Component 2', fontsize = 15)
-ax.set_title('2 component PCA', fontsize = 20)
-
+ax.set_xlabel('PCA1', fontsize = 15)
+ax.set_ylabel('PCA2', fontsize = 15)
+ax.set_title('PCA analysis', fontsize = 20)
 targets = [0, 1, 2]
 colors = ['r', 'g', 'b']
-for target, color in zip(targets,colors):
+for target, color in zip(targets,colors):   
     indicesToKeep = finalDf['species'] == target
     ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
                , finalDf.loc[indicesToKeep, 'principal component 2']
@@ -54,5 +85,9 @@ ax.set_xlim([-4, 4])
 ax.set_ylim([-4, 4])
 
 plt.show()
+
+# Next step is to plot the variance explained by each principal component.
+#https://convertio.co/download/f60700f073232ef69c69648a2f4494378e1a7d/
+
 
 
