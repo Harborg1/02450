@@ -23,7 +23,7 @@ num_columns = len(data.columns)
 
 # Now you can proceed with the rest of your code
 # Define features and target variable
-features = ['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex', 'year']
+features = ['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g']
 target = ['species']
 
 # Extract features (X) and target variable (y)
@@ -41,7 +41,6 @@ V = V.T
 
 # Compute variance explained by principal components
 rho = (S * S) / (S * S).sum()
-
 
 
 # Project data onto principal component space
