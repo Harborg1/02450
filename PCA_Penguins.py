@@ -1,7 +1,7 @@
 
 # SOURCES:
 # https://builtin.com/machine-learning/pca-in-python
-# exercise 2.2 (a)
+# exercise 2.2.2 
 
 from matplotlib import figure
 import pandas as pd
@@ -31,7 +31,7 @@ y = data.loc[:,target].values
 
 x = StandardScaler().fit_transform(X)
 
-# PCA by computing SVD of Y
+# PCA by computing SVD of x
 U, S, V = linalg.svd(x, full_matrices=False)
 
 # U = mat(U)
@@ -40,16 +40,23 @@ V = V.T
 # Compute variance explained by principal components
 rho = (S * S) / (S * S).sum()
 
+
+
 # Project data onto principal component space
 Z = x @ V
 
 # Plot variance explained
+threshold = 0.65
 plt.figure()
-plt.plot(rho, "o-")
+plt.plot(range(1, len(rho) + 1), rho, "x-")
+plt.plot(range(1, len(rho) + 1), np.cumsum(rho), "o-")
+plt.plot([1, len(rho)], [threshold, threshold], "k--")
 plt.title("Variance explained by principal components")
 plt.xlabel("Principal component")
-plt.ylabel("Variance explained value")
-
+plt.ylabel("Variance explained")
+plt.legend(["Individual", "Cumulative", "Threshold"])
+plt.grid()
+plt.show()
 
 pca = PCA(n_components=2)
 
