@@ -105,11 +105,11 @@ plt.show()
 ### DATA VISUALIZATION --------------------------------------------------------
 # Histogram
 plt.figure(figsize=(8, 4))
-M = len(features)-3
+M = len(features)
 for i in range(M):
     plt.subplot(1, 4, i+1)
-    plt.hist(X[:, i+1], color=(0.2, 0.8 - i * 0.2, 0.4))
-    plt.xlabel(features[i+1])
+    plt.hist(X[:, i], color=(0.2, 0.8 - i * 0.2, 0.4))
+    plt.xlabel(features[i])
     plt.ylim([0,80])
 plt.show()
 
@@ -117,9 +117,9 @@ plt.show()
 classNames=list(["Adelie","Gentoo","Chinstrap"])
 C=len(classNames)
 plt.figure(figsize=(12, 10))
-M = len(features)-2
-for m1 in range(1,M):
-    for m2 in range(1,M):
+M = len(features)
+for m1 in range(M):
+    for m2 in range(M):
         plt.subplot(M, M, m1 * M + m2 + 1)
         for c in range(C):
             class_mask = y == c
@@ -147,11 +147,11 @@ for c in range(C):
     class_mask = class_mask[:,0]
     # or: class_mask = nonzero(y==c)[0].tolist()[0] # indices of class c
 
-    plt.boxplot(x[class_mask, 1:5])
+    plt.boxplot(x[class_mask])
     # title('Class: {0}'.format(classNames[c]))
     plt.title("Class: " + classNames[c])
     plt.xticks(
-        range(1, M), [a[:7] for a in features[1:5]], rotation=45
+        range(M), [a[:7] for a in features], rotation=45
     )
     y_up = x.max() + (x.max() - x.min()) * 0.1
     y_down = x.min() - (x.max() - x.min()) * 0.1
