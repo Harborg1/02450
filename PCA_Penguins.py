@@ -129,7 +129,7 @@ for m1 in range(M):
                 plt.xlabel(features[m2])
             else:
                 plt.xticks([])
-            if m2 == 1:
+            if m2 == 0:
                 plt.ylabel(features[m1])
             else:
                 plt.yticks([])
@@ -142,7 +142,7 @@ plt.show()
 #BoxPlot
 plt.figure(figsize=(14, 7))
 for c in range(C):
-    plt.subplot(1, C, c + 1)
+    plt.subplot(1, C, c+1)
     class_mask = y == c  # binary mask to extract elements of class c
     class_mask = class_mask[:,0]
     # or: class_mask = nonzero(y==c)[0].tolist()[0] # indices of class c
@@ -151,7 +151,7 @@ for c in range(C):
     # title('Class: {0}'.format(classNames[c]))
     plt.title("Class: " + classNames[c])
     plt.xticks(
-        range(M), [a[:7] for a in features], rotation=45
+        range(1,M+1), [a for a in features], rotation=45
     )
     y_up = x.max() + (x.max() - x.min()) * 0.1
     y_down = x.min() - (x.max() - x.min()) * 0.1
