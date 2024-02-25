@@ -102,6 +102,28 @@ plt.show()
 # Next step is to plot the variance explained by each principal component.
 #https://convertio.co/download/f60700f073232ef69c69648a2f4494378e1a7d/
 
+#PCA component coefficients in histogram
+# Barplot
+aa = np.arange(len(features))  # the label locations
+width = 0.25  # the width of the bars
+multiplier = 0
+fig, ax = plt.subplots(layout='constrained')
+for vector in U:
+    offset = width * multiplier
+    rects = ax.bar(aa + offset, vector, width)
+    ax.bar_label(rects, padding=3)
+    multiplier += 1
+
+# Add some text for labels, title and custom x-axis tick labels, etc.
+ax.set_ylabel('Length (mm)')
+ax.set_title('Penguin attributes by species')
+ax.set_xticks(aa + width, features,rotation=45)
+#ax.legend(loc='upper left', ncols=3)
+#ax.set_ylim(0, 250)
+
+plt.show()
+
+
 ### DATA VISUALIZATION --------------------------------------------------------
 # Histogram
 plt.figure(figsize=(8, 4))
