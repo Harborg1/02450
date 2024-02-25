@@ -79,7 +79,7 @@ principalDf = pd.DataFrame(data = principalComponents
 
 finalDf = pd.concat([principalDf, data[['species']]], axis = 1)
 
-
+classNames=list(["Adelie","Gentoo","Chinstrap"])
 fig = plt.figure(figsize = (8,8))
 ax = fig.add_subplot(1,1,1) 
 ax.set_xlabel('PCA1', fontsize = 15)
@@ -93,7 +93,7 @@ for target, color in zip(targets,colors):
                , finalDf.loc[indicesToKeep, 'principal component 2']
                , c = color
                , s = 50)
-ax.legend(targets)
+ax.legend(classNames)
 ax.set_xlim([-4, 4])
 ax.set_ylim([-4, 4])
 
