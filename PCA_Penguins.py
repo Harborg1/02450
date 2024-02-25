@@ -111,15 +111,14 @@ fig, ax = plt.subplots(layout='constrained')
 for vector in U:
     offset = width * multiplier
     rects = ax.bar(aa + offset, vector, width)
-    ax.bar_label(rects, padding=3)
     multiplier += 1
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('Length (mm)')
-ax.set_title('Penguin attributes by species')
+ax.set_ylabel('Component coefficients')
+ax.set_title('PCA components coefficients')
 ax.set_xticks(aa + width, features,rotation=45)
-#ax.legend(loc='upper left', ncols=3)
-#ax.set_ylim(0, 250)
+ax.grid(axis='y')
+ax.set_yticks(np.arange(-0.5, 0.8, 0.25))
 
 plt.show()
 
