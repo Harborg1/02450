@@ -47,7 +47,7 @@ rho = (S * S) / (S * S).sum()
 Z = x @ V
 
 # Plot variance explained
-threshold = 0.65
+threshold = 0.9
 plt.figure()
 plt.plot(range(1, len(rho) + 1), rho, "x-")
 plt.plot(range(1, len(rho) + 1), np.cumsum(rho), "o-")
