@@ -12,6 +12,19 @@ import numpy as np
 import os
 from sklearn import linear_model, model_selection
 
+from matplotlib.pylab import (
+    figure,
+    grid,
+    legend,
+    loglog,
+    semilogx,
+    show,
+    subplot,
+    title,
+    xlabel,
+    ylabel,
+)
+
 path=os.getcwd()
 print(path)
 file_path = os.path.join(path, "penguinsNew.xls")
@@ -43,16 +56,17 @@ species_encoding[np.arange(species.size), species] = 1
 
 print(species_encoding)
 
-print(X)
-print(y)
-
 
 X_r = np.concatenate((X_r[:, :1], species_encoding, X_r[:, 1:]), axis=1)
 X_r[:, 0] = X_r[:, 1] # Make the first column equal the second column
 
 X_r = np.delete(X_r, 1, axis=1) # Delete the second column
 
-print(X_r)
+X = np.concatenate((np.ones((X.shape[0], 1)), X), 1)
+
+print(X)
+
+print(Y_r)
 
 # print(X_r[:, 0])
 # print(X_r[:, 1])
@@ -119,7 +133,6 @@ def rlr_validate(X, y, lambdas, cvf=10):
 N, M = X.shape
 M = M + 1
 
-
 ## Crossvalidation
 # Create crossvalidation partition for evaluation
 K = 5
@@ -141,13 +154,13 @@ w_noreg = np.empty((M, K))
 
 k = 0
 
-for train_index, test_index in CV.split(X, y):
-    print("Test")
+for train_index, test_index in CV.split(X_r, Y_r):
+    
     # extract training and test set for current CV fold
-    X_train = X[train_index]
-    y_train = y[train_index]
-    X_test = X[test_index]
-    y_test = y[test_index]
+    X_train = X_r[train_index]
+    y_train = Y_r[train_index]
+    X_test = X_r[test_index]
+    y_test = Y_r[test_index]
     internal_cross_validation = 10
     (
         opt_val_err,
@@ -157,4 +170,25 @@ for train_index, test_index in CV.split(X, y):
         test_err_vs_lambda,
     ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
 
-#print(opt_val_err)
+
+    # Display the results for the last cross-validation fold
+    if k == K - 1:
+        
+        subplot(1, 2, 2)
+        title("Optimal lambda: 1e{0}".format(np.log10(opt_lambda)))
+        loglog(
+            lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
+        )
+        xlabel("Regularization factor")
+        ylabel("Squared error (crossvalidation)")
+        legend(["Train error", "Validation error"])
+        grid()
+
+    # To inspect the used indices, use these print statements
+    # print('Cross validation fold {0}/{1}:'.format(k+1,K))
+    # print('Train indices: {0}'.format(train_index))
+    # print('Test indices: {0}\n'.format(test_index))
+
+    k += 1
+
+show()
