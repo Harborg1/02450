@@ -56,29 +56,26 @@ species_encoding[np.arange(species.size), species] = 1
 
 print(species_encoding)
 
-
 X_r = np.concatenate((X_r[:, :1], species_encoding, X_r[:, 1:]), axis=1)
 X_r[:, 0] = X_r[:, 1] # Make the first column equal the second column
 
 X_r = np.delete(X_r, 1, axis=1) # Delete the second column
 
-X = np.concatenate((np.ones((X.shape[0], 1)), X), 1)
-
-print(X)
+X_r = np.concatenate((np.ones((X_r.shape[0], 1)), X_r), 1)
 
 print(Y_r)
 
-# print(X_r[:, 0])
+print(X_r)
+
+print(X_r[:, 0])
 # print(X_r[:, 1])
 # print(X_r[:, 2])
 # print(X_r[:, 3])
 # print(X_r[:, 4])
 # print(X_r[:, 5])
-
 # print(Y_r)
 
 def rlr_validate(X, y, lambdas, cvf=10):
-    
     CV = model_selection.KFold(cvf, shuffle=True)
     M = X.shape[1]
     w = np.empty((M, cvf, len(lambdas)))
@@ -130,7 +127,7 @@ def rlr_validate(X, y, lambdas, cvf=10):
         test_err_vs_lambda,
     )
 
-N, M = X.shape
+N, M = X_r.shape
 M = M + 1
 
 ## Crossvalidation
