@@ -23,6 +23,8 @@ from matplotlib.pylab import (
     title,
     xlabel,
     ylabel,
+    xlim,
+    ylim
 )
 
 path=os.getcwd()
@@ -135,7 +137,7 @@ M = M + 1
 K = 5
 CV = model_selection.KFold(K, shuffle=True)
 # Values of lambda
-lambdas = np.power(10.0, range(-5, 9))
+lambdas = np.power(10.0, range(-2, 2))
 # Initialize variables
 # T = len(lambdas)
 Error_train = np.empty((K, 1))
@@ -152,7 +154,6 @@ w_noreg = np.empty((M, K))
 k = 0
 
 for train_index, test_index in CV.split(X_r, Y_r):
-    
     # extract training and test set for current CV fold
     X_train = X_r[train_index]
     y_train = Y_r[train_index]
@@ -166,26 +167,35 @@ for train_index, test_index in CV.split(X_r, Y_r):
         train_err_vs_lambda,
         test_err_vs_lambda,
     ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
-
+    
 
     # Display the results for the last cross-validation fold
     if k == K - 1:
         
-        subplot(1, 2, 2)
-        title("Optimal lambda: 1e{0}".format(np.log10(opt_lambda)))
-        loglog(
+        plt.title("Optimal lambda: 1e{0}".format(opt_lambda))
+        plt.plot(
             lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
         )
-        xlabel("Regularization factor")
-        ylabel("Squared error (crossvalidation)")
-        legend(["Train error", "Validation error"])
-        grid()
-
+        plt.xlabel("Regularization factor")
+        plt.ylabel("Squared error (crossvalidation)")
+        plt.legend(["Train error", "Validation error"])
+        plt.grid()
+        
     # To inspect the used indices, use these print statements
     # print('Cross validation fold {0}/{1}:'.format(k+1,K))
     # print('Train indices: {0}'.format(train_index))
     # print('Test indices: {0}\n'.format(test_index))
 
     k += 1
-
 show()
+
+slopes = []
+
+for i in range(len(lambdas) - 1):
+    # Calculate slope between consecutive points
+    slope = (test_err_vs_lambda[i + 1] - test_err_vs_lambda[i]) / (lambdas[i + 1] - lambdas[i])
+    slopes.append(slope)
+
+# Print the calculated slopes
+print("Slopes between consecutive points:", slopes)
+
