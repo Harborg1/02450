@@ -173,6 +173,9 @@ for train_index, test_index in CV.split(X_r, Y_r):
     if k == K - 1:
         
         plt.title("Optimal lambda: 1e{0}".format(opt_lambda))
+        # loglog(
+        #     lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
+        # )
         plt.plot(
             lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
         )
