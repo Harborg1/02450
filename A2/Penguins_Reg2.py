@@ -65,11 +65,12 @@ X_r = np.delete(X_r, 1, axis=1) # Delete the second column
 
 X_r = np.concatenate((np.ones((X_r.shape[0], 1)), X_r), 1)
 
-print(Y_r)
+# print(Y_r)
 
-print(X_r)
+# print(X_r)
 
-print(X_r[:, 0])
+
+#print(X_r[:, 0])
 # print(X_r[:, 1])
 # print(X_r[:, 2])
 # print(X_r[:, 3])
@@ -86,21 +87,20 @@ def rlr_validate(X, y, lambdas, cvf_outer=10, cvf_inner=10):
     
     for f_outer, (train_index_outer, test_index_outer) in enumerate(CV_outer.split(X, y)):
         X_train_outer, X_test_outer = X[train_index_outer], X[test_index_outer]
-        y_train_outer, y_test_outer = y[train_index_outer], y[test_index_outer]
+        y_train_outer, _ = y[train_index_outer], y[test_index_outer]
         
         CV_inner = model_selection.KFold(cvf_inner, shuffle=True)
         
         for (train_index_inner, test_index_inner) in (CV_inner.split(X_train_outer, y_train_outer)):
             X_train_inner, X_val = X_train_outer[train_index_inner], X_train_outer[test_index_inner]
             y_train_inner, y_val = y_train_outer[train_index_inner], y_train_outer[test_index_inner]
-
+            
             mu = np.mean(X_train_inner[:, 1:], axis=0)
             sigma = np.std(X_train_inner[:, 1:], axis=0)
 
             X_train_inner[:, 1:] = (X_train_inner[:, 1:] - mu) / sigma
             X_val[:, 1:] = (X_val[:, 1:] - mu) / sigma
             X_test_outer[:, 1:] = (X_test_outer[:, 1:] - mu) / sigma
-
             Xty = X_train_inner.T @ y_train_inner
             XtX = X_train_inner.T @ X_train_inner
             for l in range(len(lambdas)):
@@ -123,13 +123,14 @@ def rlr_validate(X, y, lambdas, cvf_outer=10, cvf_inner=10):
         train_err_vs_lambda,
         test_err_vs_lambda,
     )
+    
 
 N, M = X_r.shape
 M = M + 1
 
 ## Crossvalidation
 # Create crossvalidation partition for evaluation
-K = 5
+K = 10
 CV = model_selection.KFold(K, shuffle=True)
 # Values of lambda
 lambdas = np.power(10.0, range(-2, 2))
@@ -148,7 +149,11 @@ w_noreg = np.empty((M, K))
 
 k = 0
 
+list =[]
+
+
 for train_index, test_index in CV.split(X_r, Y_r):
+   
     # extract training and test set for current CV fold
     X_train = X_r[train_index]
     y_train = Y_r[train_index]
@@ -163,6 +168,27 @@ for train_index, test_index in CV.split(X_r, Y_r):
         test_err_vs_lambda,
     ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
     
+    
+    # Xty = X_train.T @ y_train
+    # XtX = X_train.T @ X_train
+    # lambdaI = opt_lambda * np.eye(M)
+    # lambdaI[0, 0] = 0  # Do no regularize the bias term
+    
+    
+    # w_rlr[:, k] = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
+    
+    # Error_test_rlr[k] = (
+    #     np.square(y_test - X_test @ w_rlr[:, k]).sum(axis=0) / y_test.shape[0]
+    # )
+    
+    
+    # Error_test_nofeatures[k] = (
+    #     np.square(y_test - y_test.mean()).sum(axis=0) / y_test.shape[0]
+    # )
+    
+    # list.append((opt_lambda, Error_test_nofeatures[k] ))
+    
+
 
     # Display the results for the last cross-validation fold
     if k == K - 1:
@@ -183,6 +209,8 @@ for train_index, test_index in CV.split(X_r, Y_r):
 
     k += 1
 show()
+
+print("the list is", list)
 
 slopes = []
 
