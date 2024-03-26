@@ -1,4 +1,3 @@
-
 # SOURCES:
 # https://builtin.com/machine-learning/pca-in-python
 # exercise 2.2.2 
@@ -111,7 +110,7 @@ def rlr_validate(X, y, lambdas, cvf=10):
             train_error[f, l] = np.power(y_train - X_train @ w[:, f, l].T, 2).mean(
                 axis=0
             )
-           test_error[f, train_index_inner, l] = np.power(y_val - X_val @ w[:, f, train_index_inner, l].T, 2).mean(axis=0)
+            test_error[f, l] = np.power(y_test - X_test @ w[:, f, l].T, 2).mean(axis=0)
 
         f = f + 1
 
@@ -198,4 +197,3 @@ for i in range(len(lambdas) - 1):
 
 # Print the calculated slopes
 print("Slopes between consecutive points:", slopes)
-
