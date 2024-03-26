@@ -133,73 +133,75 @@ def rlr_validate(X, y, lambdas, cvf=10):
 N, M = X_r.shape
 M = M + 1
 
-## Crossvalidation
-# Create crossvalidation partition for evaluation
-K = 5
-CV = model_selection.KFold(K, shuffle=True)
-# Values of lambda
+# ## Crossvalidation
+# # Create crossvalidation partition for evaluation
+# K = 5
+# CV = model_selection.KFold(K, shuffle=True)
+# # Values of lambda
 lambdas = np.power(10.0, range(-5, 9))
-# Initialize variables
-# T = len(lambdas)
-Error_train = np.empty((K, 1))
-Error_test = np.empty((K, 1))
-Error_train_rlr = np.empty((K, 1))
-Error_test_rlr = np.empty((K, 1))
-Error_train_nofeatures = np.empty((K, 1))
-Error_test_nofeatures = np.empty((K, 1))
-w_rlr = np.empty((M, K))
-mu = np.empty((K, M - 1))
-sigma = np.empty((K, M - 1))
-w_noreg = np.empty((M, K))
+# # Initialize variables
+# # T = len(lambdas)
+# Error_train = np.empty((K, 1))
+# Error_test = np.empty((K, 1))
+# Error_train_rlr = np.empty((K, 1))
+# Error_test_rlr = np.empty((K, 1))
+# Error_train_nofeatures = np.empty((K, 1))
+# Error_test_nofeatures = np.empty((K, 1))
+# w_rlr = np.empty((M, K))
+# mu = np.empty((K, M - 1))
+# sigma = np.empty((K, M - 1))
+# w_noreg = np.empty((M, K))
 
-k = 0
+# k = 0
 
-for train_index, test_index in CV.split(X_r, Y_r):
-    # extract training and test set for current CV fold
-    X_train = X_r[train_index]
-    y_train = Y_r[train_index]
-    X_test = X_r[test_index]
-    y_test = Y_r[test_index]
-    internal_cross_validation = 10
-    (
-        opt_val_err,
-        opt_lambda,
-        mean_w_vs_lambda,
-        train_err_vs_lambda,
-        test_err_vs_lambda,
-    ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
+# for train_index, test_index in CV.split(X_r, Y_r):
+#     # extract training and test set for current CV fold
+#     X_train = X_r[train_index]
+#     y_train = Y_r[train_index]
+#     X_test = X_r[test_index]
+#     y_test = Y_r[test_index]
+internal_cross_validation = 10
+(
+    opt_val_err,
+    opt_lambda,
+    mean_w_vs_lambda,
+    train_err_vs_lambda,
+    test_err_vs_lambda,
+) = rlr_validate(X_r, Y_r, lambdas, internal_cross_validation)
+
+figure(1, figsize=(15, 10))
+subplot(1, 2, 1)
+semilogx(lambdas, mean_w_vs_lambda.T[:, 1:], ".-")  # Don't plot the bias term
+xlabel("Regularization factor")
+ylabel("Mean Coefficient Values")
+grid()
+# You can choose to display the legend, but it's omitted for a cleaner
+# plot, since there are many attributes
+legend(attributeNames[0:], loc='best')
+
+subplot(1, 2, 2)
+title("Optimal lambda: 1e{0}".format(np.log10(opt_lambda)))
+loglog(
+    lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
+)
+xlabel("Regularization factor")
+ylabel("Squared error (crossvalidation)")
+legend(["Train error", "Validation error"])
+grid()
+
+# To inspect the used indices, use these print statements
+# print('Cross validation fold {0}/{1}:'.format(k+1,K))
+# print('Train indices: {0}'.format(train_index))
+# print('Test indices: {0}\n'.format(test_index))
     
-    
-    # Display the results for the last cross-validation fold
-    if k == K - 1:
-        
-        figure(k, figsize=(15, 10))
-        subplot(1, 2, 1)
-        semilogx(lambdas, mean_w_vs_lambda.T[:, 1:], ".-")  # Don't plot the bias term
-        xlabel("Regularization factor")
-        ylabel("Mean Coefficient Values")
-        grid()
-        # You can choose to display the legend, but it's omitted for a cleaner
-        # plot, since there are many attributes
-        legend(attributeNames[0:], loc='best')
 
-        subplot(1, 2, 2)
-        title("Optimal lambda: 1e{0}".format(np.log10(opt_lambda)))
-        loglog(
-            lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
-        )
-        xlabel("Regularization factor")
-        ylabel("Squared error (crossvalidation)")
-        legend(["Train error", "Validation error"])
-        grid()
+#k += 1
 
-    # To inspect the used indices, use these print statements
-    # print('Cross validation fold {0}/{1}:'.format(k+1,K))
-    # print('Train indices: {0}'.format(train_index))
-    # print('Test indices: {0}\n'.format(test_index))
-        
 
-    k += 1
+
+
+
+
 show()
 
 slopes = []

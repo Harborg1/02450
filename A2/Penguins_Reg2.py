@@ -72,7 +72,6 @@ X_r = np.concatenate((np.ones((X_r.shape[0], 1)), X_r), 1)
 
 # print(X_r)
 
-
 #print(X_r[:, 0])
 # print(X_r[:, 1])
 # print(X_r[:, 2])
@@ -171,7 +170,6 @@ max_iter = 10000
 print("Training model of type:\n\n{}\n".format(str(model())))
 errors = []  # make a list for storing generalizaition error in each loop
 for train_index, test_index in CV.split(X_r, Y_r):
-   
     # extract training and test set for current CV fold
     X_train = X_r[train_index]
     y_train = Y_r[train_index]
@@ -213,8 +211,9 @@ for train_index, test_index in CV.split(X_r, Y_r):
     se = (y_test_est.float() - y_test_ANN.float()) ** 2  # squared error
     mse = (sum(se).type(torch.float) / len(y_test_ANN)).data.numpy()  # mean
     errors.append(mse)  # store error rate for current CV fold
+    
     #---------------------------------------------------------------------------------------------
-
+    
     Xty = X_train.T @ y_train
     XtX = X_train.T @ X_train
     lambdaI = opt_lambda * np.eye(M)
@@ -269,3 +268,11 @@ for i in range(len(lambdas) - 1):
 # Print the calculated slopes
 print("Slopes between consecutive points:", slopes)
 
+#ANN---------------------------------------------------------------------------------------------
+print(
+    "\nEstimated generalization error, RMSE: {0}".format(
+        round(np.sqrt(np.mean(errors)), 4)
+    )
+)
+
+#-------------------------------------------------------------------------------------------------
