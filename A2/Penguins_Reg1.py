@@ -198,10 +198,6 @@ grid()
 #k += 1
 
 
-
-
-
-
 show()
 
 slopes = []
