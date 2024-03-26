@@ -26,6 +26,8 @@ from matplotlib.pylab import (
     ylim
 )
 
+attributeNames = ["species", "bill_length", "bill_depth", "flipper_length"]
+
 path=os.getcwd()
 print(path)
 file_path = os.path.join(path, "penguinsNew.xls")
@@ -136,7 +138,7 @@ M = M + 1
 K = 5
 CV = model_selection.KFold(K, shuffle=True)
 # Values of lambda
-lambdas = np.power(10.0, range(-2, 2))
+lambdas = np.power(10.0, range(-5, 9))
 # Initialize variables
 # T = len(lambdas)
 Error_train = np.empty((K, 1))
@@ -167,26 +169,35 @@ for train_index, test_index in CV.split(X_r, Y_r):
         test_err_vs_lambda,
     ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
     
-
+    
     # Display the results for the last cross-validation fold
     if k == K - 1:
         
-        plt.title("Optimal lambda: 1e{0}".format(opt_lambda))
-        # loglog(
-        #     lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
-        # )
-        plt.plot(
+        figure(k, figsize=(15, 10))
+        subplot(1, 2, 1)
+        semilogx(lambdas, mean_w_vs_lambda.T[:, 1:], ".-")  # Don't plot the bias term
+        xlabel("Regularization factor")
+        ylabel("Mean Coefficient Values")
+        grid()
+        # You can choose to display the legend, but it's omitted for a cleaner
+        # plot, since there are many attributes
+        legend(attributeNames[0:], loc='best')
+
+        subplot(1, 2, 2)
+        title("Optimal lambda: 1e{0}".format(np.log10(opt_lambda)))
+        loglog(
             lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
         )
-        plt.xlabel("Regularization factor")
-        plt.ylabel("Squared error (crossvalidation)")
-        plt.legend(["Train error", "Validation error"])
-        plt.grid()
-        
+        xlabel("Regularization factor")
+        ylabel("Squared error (crossvalidation)")
+        legend(["Train error", "Validation error"])
+        grid()
+
     # To inspect the used indices, use these print statements
     # print('Cross validation fold {0}/{1}:'.format(k+1,K))
     # print('Train indices: {0}'.format(train_index))
     # print('Test indices: {0}\n'.format(test_index))
+        
 
     k += 1
 show()

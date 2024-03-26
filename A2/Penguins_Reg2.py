@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from sklearn import linear_model, model_selection
+import torch
+from dtuimldmtools import draw_neural_net, train_neural_net
+
 
 from matplotlib.pylab import (
     figure,
@@ -91,7 +94,7 @@ def rlr_validate(X, y, lambdas, cvf_outer=10, cvf_inner=10):
         
         CV_inner = model_selection.KFold(cvf_inner, shuffle=True)
         
-        for (train_index_inner, test_index_inner) in (CV_inner.split(X_train_outer, y_train_outer)):
+        for f_inner, (train_index_inner, test_index_inner) in enumerate(CV_inner.split(X_train_outer, y_train_outer)):
             X_train_inner, X_val = X_train_outer[train_index_inner], X_train_outer[test_index_inner]
             y_train_inner, y_val = y_train_outer[train_index_inner], y_train_outer[test_index_inner]
             
@@ -106,9 +109,9 @@ def rlr_validate(X, y, lambdas, cvf_outer=10, cvf_inner=10):
             for l in range(len(lambdas)):
                 lambdaI = lambdas[l] * np.eye(M)
                 lambdaI[0, 0] = 0
-                w[:, f_outer, l] = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
-                train_error[f_outer, l] = np.power(y_train_inner - X_train_inner @ w[:, f_outer, l].T, 2).mean(axis=0)
-                test_error[f_outer, l] = np.power(y_val - X_val @ w[:, f_outer, l].T, 2).mean(axis=0)
+                w[:, f_inner, l] = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
+                train_error[f_inner, l] = np.power(y_train_inner - X_train_inner @ w[:, f_inner, l].T, 2).mean(axis=0)
+                test_error[f_inner, l] = np.power(y_val - X_val @ w[:, f_inner, l].T, 2).mean(axis=0)
     
     opt_val_err = np.min(np.mean(test_error, axis=0))
     opt_lambda = lambdas[np.argmin(np.mean(test_error, axis=0))]
@@ -126,11 +129,10 @@ def rlr_validate(X, y, lambdas, cvf_outer=10, cvf_inner=10):
     
 
 N, M = X_r.shape
-M = M + 1
 
 ## Crossvalidation
 # Create crossvalidation partition for evaluation
-K = 10
+K = 2
 CV = model_selection.KFold(K, shuffle=True)
 # Values of lambda
 lambdas = np.power(10.0, range(-2, 2))
@@ -146,12 +148,28 @@ w_rlr = np.empty((M, K))
 mu = np.empty((K, M - 1))
 sigma = np.empty((K, M - 1))
 w_noreg = np.empty((M, K))
+results = np.empty((K, 4))
 
 k = 0
 
-list =[]
+# Used in ANN -------------------------------------------------------------------------------
+# Define the model
+model = lambda: torch.nn.Sequential(
+    torch.nn.Linear(M, n_hidden_units),  # M features to n_hidden_units
+    torch.nn.Tanh(),  # 1st transfer function,
+    torch.nn.Linear(n_hidden_units, 1),  # n_hidden_units to 1 output neuron
+    # no final tranfer function, i.e. "linear output"
+)
+loss_fn = torch.nn.MSELoss()  # notice how this is now a mean-squared-error loss
 
+# Parameters for neural network classifier
+n_hidden_units = 2  # number of hidden units
+n_replicates = 1  # number of networks trained in each k-fold
+max_iter = 10000
+#--------------------------------------------------------------------------------------------
 
+print("Training model of type:\n\n{}\n".format(str(model())))
+errors = []  # make a list for storing generalizaition error in each loop
 for train_index, test_index in CV.split(X_r, Y_r):
    
     # extract training and test set for current CV fold
@@ -168,28 +186,56 @@ for train_index, test_index in CV.split(X_r, Y_r):
         test_err_vs_lambda,
     ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
     
+    #ANN------------------------------------------------------------------------------------------
+    print("\nCrossvalidation fold: {0}/{1}".format(k + 1, K))
+    # Extract training and test set for current CV fold, convert to tensors
+    X_train_ANN = torch.Tensor(X_r[train_index, :])
+    y_train_ANN = torch.Tensor(Y_r[train_index])
+    X_test_ANN = torch.Tensor(X_r[test_index, :])
+    y_test_ANN = torch.Tensor(Y_r[test_index])
     
-    # Xty = X_train.T @ y_train
-    # XtX = X_train.T @ X_train
-    # lambdaI = opt_lambda * np.eye(M)
-    # lambdaI[0, 0] = 0  # Do no regularize the bias term
-    
-    
-    # w_rlr[:, k] = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
-    
-    # Error_test_rlr[k] = (
-    #     np.square(y_test - X_test @ w_rlr[:, k]).sum(axis=0) / y_test.shape[0]
-    # )
-    
-    
-    # Error_test_nofeatures[k] = (
-    #     np.square(y_test - y_test.mean()).sum(axis=0) / y_test.shape[0]
-    # )
-    
-    # list.append((opt_lambda, Error_test_nofeatures[k] ))
-    
+    # Train the net on training data
+    net, final_loss, learning_curve = train_neural_net(
+        model,
+        loss_fn,
+        X=X_train_ANN,
+        y=y_train_ANN,
+        n_replicates=n_replicates,
+        max_iter=max_iter,
+    )
 
+    print("\n\tBest loss: {}\n".format(final_loss))
 
+    # Determine estimated class labels for test set
+    y_test_est = net(X_test_ANN)
+
+    # Determine errors and errors
+    se = (y_test_est.float() - y_test_ANN.float()) ** 2  # squared error
+    mse = (sum(se).type(torch.float) / len(y_test_ANN)).data.numpy()  # mean
+    errors.append(mse)  # store error rate for current CV fold
+    #---------------------------------------------------------------------------------------------
+
+    Xty = X_train.T @ y_train
+    XtX = X_train.T @ X_train
+    lambdaI = opt_lambda * np.eye(M)
+    lambdaI[0, 0] = 0  # Do no regularize the bias term
+    
+    w_rlr[:, k] = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
+    
+    Error_test_rlr[k] = (
+        np.square(y_test - X_test @ w_rlr[:, k]).sum(axis=0) / y_test.shape[0]
+    )
+    
+    
+    Error_test_nofeatures[k] = (
+        np.square(y_test - y_test.mean()).sum(axis=0) / y_test.shape[0]
+    )
+    
+    results[k, 0] = k
+    results[k, 1] = opt_lambda
+    results[k, 2]  = Error_test_rlr[k]
+    results[k, 3] = Error_test_nofeatures[k]
+    
     # Display the results for the last cross-validation fold
     if k == K - 1:
         
@@ -210,7 +256,8 @@ for train_index, test_index in CV.split(X_r, Y_r):
     k += 1
 show()
 
-print("the list is", list)
+
+print("the results is", results)
 
 slopes = []
 
