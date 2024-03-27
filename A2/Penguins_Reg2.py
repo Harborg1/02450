@@ -13,6 +13,7 @@ import os
 from sklearn import linear_model, model_selection
 import torch
 from dtuimldmtools import draw_neural_net, train_neural_net
+from scipy import stats
 
 
 from matplotlib.pylab import (
@@ -29,6 +30,8 @@ from matplotlib.pylab import (
     xlim,
     ylim
 )
+
+import sys
 
 path=os.getcwd()
 print(path)
@@ -49,7 +52,11 @@ data = np.concatenate((X, np.expand_dims(y, axis=1)), axis=1)
 
 Y_r  = data[:, 4] # Get the body mass (target)
 
-X_r = data[:,[0,1,2,3]] # Get the features (species, bill_length, bill_depth, flipper_length)
+X_r = data[:,[1,2,3]] # Get the features (species, bill_length, bill_depth, flipper_length)
+# Normalize data
+X_r = stats.zscore(X_r)
+X_r = np.concatenate((data[:,0:1],X_r),1)
+
 
 species = np.array(X_r[:, 0], dtype=int).T
 
@@ -67,6 +74,9 @@ X_r[:, 0] = X_r[:, 1] # Make the first column equal the second column
 X_r = np.delete(X_r, 1, axis=1) # Delete the second column
 
 X_r = np.concatenate((np.ones((X_r.shape[0], 1)), X_r), 1)
+
+N, M = X_r.shape
+
 
 # print(Y_r)
 
@@ -89,21 +99,21 @@ def rlr_validate(X, y, lambdas, cvf=10):
     f = 0
     y = y.squeeze()
     for train_index, test_index in CV.split(X, y):
-        X_train = X[train_index]
-        y_train = y[train_index]
-        X_test = X[test_index]
-        y_test = y[test_index]
+        X_train_inner = X[train_index]
+        y_train_inner = y[train_index]
+        X_test_inner = X[test_index]
+        y_test_inner = y[test_index]
 
         # Standardize the training and set set based on training set moments
-        mu = np.mean(X_train[:, 1:], 0)
-        sigma = np.std(X_train[:, 1:], 0)
+        mu = np.mean(X_train_inner[:, 1:], 0)
+        sigma = np.std(X_train_inner[:, 1:], 0)
 
-        X_train[:, 1:] = (X_train[:, 1:] - mu) / sigma
-        X_test[:, 1:] = (X_test[:, 1:] - mu) / sigma
+        X_train_inner[:, 1:] = (X_train_inner[:, 1:] - mu) / sigma
+        X_test_inner[:, 1:] = (X_test_inner[:, 1:] - mu) / sigma
 
         # precompute terms
-        Xty = X_train.T @ y_train
-        XtX = X_train.T @ X_train
+        Xty = X_train_inner.T @ y_train_inner
+        XtX = X_train_inner.T @ X_train_inner
         for l in range(0, len(lambdas)):
             # Compute parameters for current value of lambda and current CV fold
             # note: "linalg.lstsq(a,b)" is substitue for Matlab's left division operator "\"
@@ -111,10 +121,10 @@ def rlr_validate(X, y, lambdas, cvf=10):
             lambdaI[0, 0] = 0  # remove bias regularization
             w[:, f, l] = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
             # Evaluate training and test performance
-            train_error[f, l] = np.power(y_train - X_train @ w[:, f, l].T, 2).mean(
+            train_error[f, l] = np.power(y_train_inner - X_train_inner @ w[:, f, l].T, 2).mean(
                 axis=0
             )
-            test_error[f, l] = np.power(y_test - X_test @ w[:, f, l].T, 2).mean(axis=0)
+            test_error[f, l] = np.power(y_test_inner - X_test_inner @ w[:, f, l].T, 2).mean(axis=0)
 
         f = f + 1
 
@@ -130,11 +140,48 @@ def rlr_validate(X, y, lambdas, cvf=10):
         mean_w_vs_lambda,
         train_err_vs_lambda,
         test_err_vs_lambda,
+        # X_train_inner,
+        # y_train_inner
     )
 
+def ANN(X, y, n_replicates, max_iter):
+    errors_inner = []  # make a list for storing generalizaition error in each loop
+    #print("\nCrossvalidation fold: {0}/{1}".format(k + 1, K))
     
+    for train_index, test_index in CV.split(X, y):
+        # Extract training and test set for current CV fold, convert to tensors
+        X_train_ANN_inner = torch.Tensor(X[train_index, :])
+        y_train_ANN_inner = torch.Tensor(y[train_index])
+        X_test_ANN_inner = torch.Tensor(X[test_index,:])
+        y_test_ANN_inner = torch.Tensor(y[test_index])
+    
+        # Train the net on training data
+        net, final_loss, learning_curve = train_neural_net(
+            model,
+            loss_fn,
+            X=X_train_ANN_inner,
+            y=y_train_ANN_inner,
+            n_replicates=n_replicates,
+            max_iter=max_iter,
+            )
 
-N, M = X_r.shape
+        print("\n\tBest loss: {}\n".format(final_loss))
+
+        # Determine estimated class labels for test set
+        y_test_est_inner = net(X_test_ANN_inner)
+        y_test_est_inner = y_test_est_inner[:,0]
+
+        # Determine errors and errors
+        se_inner = (y_test_est_inner.float() - y_test_ANN_inner.float()) ** 2  # squared error
+        mse_inner = (sum(se_inner).type(torch.float) / len(y_test_ANN_inner)).data.numpy()  # mean
+        errors_inner.append(mse_inner)  # store error rate for current CV fold
+    return(
+        errors_inner      
+        )
+    #---------------------------------------------------------------------------------------------
+        
+
+
 
 ## Crossvalidation
 # Create crossvalidation partition for evaluation
@@ -176,12 +223,14 @@ max_iter = 10000
 
 print("Training model of type:\n\n{}\n".format(str(model())))
 errors = []  # make a list for storing generalizaition error in each loop
+
+
 for train_index, test_index in CV.split(X_r, Y_r):
     # extract training and test set for current CV fold
-    X_train = X_r[train_index]
-    y_train = Y_r[train_index]
-    X_test = X_r[test_index]
-    y_test = Y_r[test_index]
+    X_train_outer = X_r[train_index]
+    y_train_outer = Y_r[train_index]
+    X_test_outer = X_r[test_index]
+    y_test_outer = Y_r[test_index]
     internal_cross_validation = 10
     (
         opt_val_err,
@@ -189,9 +238,24 @@ for train_index, test_index in CV.split(X_r, Y_r):
         mean_w_vs_lambda,
         train_err_vs_lambda,
         test_err_vs_lambda,
-    ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
+        # X_train_inner,
+        # y_train_inner,
+    ) = rlr_validate(X_train_outer, y_train_outer, lambdas, internal_cross_validation)
     
     #ANN------------------------------------------------------------------------------------------
+    errors_inner = ANN(
+        X=X_train_outer,
+        y=y_train_outer,
+        n_replicates=n_replicates,
+        max_iter=max_iter
+    )
+# stop code here - move up to break code where you like
+    sys.exit()    
+    
+    
+    
+    
+    
     print("\nCrossvalidation fold: {0}/{1}".format(k + 1, K))
     # Extract training and test set for current CV fold, convert to tensors
     X_train_ANN = torch.Tensor(X_r[train_index, :])
