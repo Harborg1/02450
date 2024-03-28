@@ -1,3 +1,4 @@
+
 # SOURCES:
 # https://builtin.com/machine-learning/pca-in-python
 # exercise 2.2.2 
@@ -12,6 +13,7 @@ import os
 from sklearn import linear_model, model_selection
 import torch
 from dtuimldmtools import draw_neural_net, train_neural_net
+import random
 from scipy import stats
 
 
@@ -29,8 +31,6 @@ from matplotlib.pylab import (
     xlim,
     ylim
 )
-
-import sys
 
 path=os.getcwd()
 print(path)
@@ -51,10 +51,7 @@ data = np.concatenate((X, np.expand_dims(y, axis=1)), axis=1)
 
 Y_r  = data[:, 4] # Get the body mass (target)
 
-X_r = data[:,[1,2,3]] # Get the features (species, bill_length, bill_depth, flipper_length)
-# Normalize data
-X_r = stats.zscore(X_r)
-X_r = np.concatenate((data[:,0:1],X_r),1)
+X_r = data[:,[0,1,2,3]] # Get the features (species, bill_length, bill_depth, flipper_length)
 
 
 species = np.array(X_r[:, 0], dtype=int).T
@@ -74,20 +71,17 @@ X_r = np.delete(X_r, 1, axis=1) # Delete the second column
 
 X_r = np.concatenate((np.ones((X_r.shape[0], 1)), X_r), 1)
 
-N, M = X_r.shape
-
-
 # print(Y_r)
 
 # print(X_r)
 
-#print(X_r[:, 0])
-# print(X_r[:, 1])
-# print(X_r[:, 2])
-# print(X_r[:, 3])
-# print(X_r[:, 4])
-# print(X_r[:, 5])
-# print(Y_r)
+print(X_r[:, 0])
+print(X_r[:, 1])
+print(X_r[:, 2])
+print(X_r[:, 3])
+print(X_r[:, 4])
+print(X_r[:, 5])
+print(Y_r)
 
 def rlr_validate(X, y, lambdas, cvf=10):
     CV = model_selection.KFold(cvf, shuffle=True)
@@ -98,21 +92,21 @@ def rlr_validate(X, y, lambdas, cvf=10):
     f = 0
     y = y.squeeze()
     for train_index, test_index in CV.split(X, y):
-        X_train_inner = X[train_index]
-        y_train_inner = y[train_index]
-        X_test_inner = X[test_index]
-        y_test_inner = y[test_index]
+        X_train = X[train_index]
+        y_train = y[train_index]
+        X_test = X[test_index]
+        y_test = y[test_index]
 
         # Standardize the training and set set based on training set moments
-        mu = np.mean(X_train_inner[:, 1:], 0)
-        sigma = np.std(X_train_inner[:, 1:], 0)
+        mu = np.mean(X_train[:, 1:], 0)
+        sigma = np.std(X_train[:, 1:], 0)
 
-        X_train_inner[:, 1:] = (X_train_inner[:, 1:] - mu) / sigma
-        X_test_inner[:, 1:] = (X_test_inner[:, 1:] - mu) / sigma
+        X_train[:, 1:] = (X_train[:, 1:] - mu) / sigma
+        X_test[:, 1:] = (X_test[:, 1:] - mu) / sigma
 
         # precompute terms
-        Xty = X_train_inner.T @ y_train_inner
-        XtX = X_train_inner.T @ X_train_inner
+        Xty = X_train.T @ y_train
+        XtX = X_train.T @ X_train
         for l in range(0, len(lambdas)):
             # Compute parameters for current value of lambda and current CV fold
             # note: "linalg.lstsq(a,b)" is substitue for Matlab's left division operator "\"
@@ -120,10 +114,10 @@ def rlr_validate(X, y, lambdas, cvf=10):
             lambdaI[0, 0] = 0  # remove bias regularization
             w[:, f, l] = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
             # Evaluate training and test performance
-            train_error[f, l] = np.power(y_train_inner - X_train_inner @ w[:, f, l].T, 2).mean(
+            train_error[f, l] = np.power(y_train - X_train @ w[:, f, l].T, 2).mean(
                 axis=0
             )
-            test_error[f, l] = np.power(y_test_inner - X_test_inner @ w[:, f, l].T, 2).mean(axis=0)
+            test_error[f, l] = np.power(y_test - X_test @ w[:, f, l].T, 2).mean(axis=0)
 
         f = f + 1
 
@@ -139,55 +133,17 @@ def rlr_validate(X, y, lambdas, cvf=10):
         mean_w_vs_lambda,
         train_err_vs_lambda,
         test_err_vs_lambda,
-        # X_train_inner,
-        # y_train_inner
     )
 
-def ANN(X, y, n_replicates, max_iter):
-    errors_inner = []  # make a list for storing generalizaition error in each loop
-    #print("\nCrossvalidation fold: {0}/{1}".format(k + 1, K))
-    
-    for train_index, test_index in CV.split(X, y):
-        # Extract training and test set for current CV fold, convert to tensors
-        X_train_ANN_inner = torch.Tensor(X[train_index, :])
-        y_train_ANN_inner = torch.Tensor(y[train_index])
-        X_test_ANN_inner = torch.Tensor(X[test_index,:])
-        y_test_ANN_inner = torch.Tensor(y[test_index])
-    
-        # Train the net on training data
-        net, final_loss, learning_curve = train_neural_net(
-            model,
-            loss_fn,
-            X=X_train_ANN_inner,
-            y=y_train_ANN_inner,
-            n_replicates=n_replicates,
-            max_iter=max_iter,
-            )
 
-        print("\n\tBest loss: {}\n".format(final_loss))
-
-        # Determine estimated class labels for test set
-        y_test_est_inner = net(X_test_ANN_inner)
-        y_test_est_inner = y_test_est_inner[:,0]
-
-        # Determine errors and errors
-        se_inner = (y_test_est_inner.float() - y_test_ANN_inner.float()) ** 2  # squared error
-        mse_inner = (sum(se_inner).type(torch.float) / len(y_test_ANN_inner)).data.numpy()  # mean
-        errors_inner.append(mse_inner)  # store error rate for current CV fold
-    return(
-        errors_inner      
-        )
-    #---------------------------------------------------------------------------------------------
-        
-
-
+N, M = X_r.shape
 
 ## Crossvalidation
 # Create crossvalidation partition for evaluation
 K = 2
 CV = model_selection.KFold(K, shuffle=True)
 # Values of lambda
-lambdas = np.power(10.0, range(-2, 2))
+lambdas = np.power(10.0, range(-5, 9))
 # Initialize variables
 # T = len(lambdas)
 Error_train = np.empty((K, 1))
@@ -200,36 +156,35 @@ w_rlr = np.empty((M, K))
 mu = np.empty((K, M - 1))
 sigma = np.empty((K, M - 1))
 w_noreg = np.empty((M, K))
-results = np.empty((K, 4))
+results = np.empty((K, 6))
 
 k = 0
 
-# Used in ANN -------------------------------------------------------------------------------
-# Define the model
+n_hidden_units = random.randint(1, 5)
+
+# Define the model with dynamically set number of hidden units
 model = lambda: torch.nn.Sequential(
-    torch.nn.Linear(M, n_hidden_units),  # M features to n_hidden_units
-    torch.nn.Tanh(),  # 1st transfer function,
-    torch.nn.Linear(n_hidden_units, 1),  # n_hidden_units to 1 output neuron
-    # no final tranfer function, i.e. "linear output"
+    torch.nn.Linear(M, n_hidden_units),   # Input layer to hidden layer
+    torch.nn.BatchNorm1d(n_hidden_units), # Batch normalization for first hidden layer
+    torch.nn.Linear(n_hidden_units, 1)    # Hidden layer to output layer
 )
 loss_fn = torch.nn.MSELoss()  # notice how this is now a mean-squared-error loss
 
 # Parameters for neural network classifier
-n_hidden_units = 2  # number of hidden units
+
 n_replicates = 1  # number of networks trained in each k-fold
-max_iter = 10000
+max_iter = 40000
 #--------------------------------------------------------------------------------------------
 
 print("Training model of type:\n\n{}\n".format(str(model())))
 errors = []  # make a list for storing generalizaition error in each loop
-
-
 for train_index, test_index in CV.split(X_r, Y_r):
     # extract training and test set for current CV fold
-    X_train_outer = X_r[train_index]
-    y_train_outer = Y_r[train_index]
-    X_test_outer = X_r[test_index]
-    y_test_outer = Y_r[test_index]
+    X_train = X_r[train_index]
+    y_train = Y_r[train_index]
+    X_test = X_r[test_index]
+    y_test = Y_r[test_index]
+    
     internal_cross_validation = 10
     (
         opt_val_err,
@@ -237,22 +192,9 @@ for train_index, test_index in CV.split(X_r, Y_r):
         mean_w_vs_lambda,
         train_err_vs_lambda,
         test_err_vs_lambda,
-        # X_train_inner,
-        # y_train_inner,
-    ) = rlr_validate(X_train_outer, y_train_outer, lambdas, internal_cross_validation)
+    ) = rlr_validate(X_train, y_train, lambdas, internal_cross_validation)
     
     #ANN------------------------------------------------------------------------------------------
-    errors_inner = ANN(
-        X=X_train_outer,
-        y=y_train_outer,
-        n_replicates=n_replicates,
-        max_iter=max_iter
-    )
-# stop code here - move up to break code where you like
-    sys.exit()    
-    
-    
-    
     print("\nCrossvalidation fold: {0}/{1}".format(k + 1, K))
     # Extract training and test set for current CV fold, convert to tensors
     X_train_ANN = torch.Tensor(X_r[train_index, :])
@@ -274,10 +216,16 @@ for train_index, test_index in CV.split(X_r, Y_r):
 
     # Determine estimated class labels for test set
     y_test_est = net(X_test_ANN)
-
+    
     # Determine errors and errors
     se = (y_test_est.float() - y_test_ANN.float()) ** 2  # squared error
-    mse = (sum(se).type(torch.float) / len(y_test_ANN)).data.numpy()  # mean
+    
+    mse = np.mean(se.detach().numpy())
+   
+    print("MSE", mse)
+    
+    print("Final loss", final_loss)
+    
     errors.append(mse)  # store error rate for current CV fold
     
     #---------------------------------------------------------------------------------------------
@@ -293,23 +241,25 @@ for train_index, test_index in CV.split(X_r, Y_r):
         np.square(y_test - X_test @ w_rlr[:, k]).sum(axis=0) / y_test.shape[0]
     )
     
+    print("Error test:", Error_test_rlr[k])
     
     Error_test_nofeatures[k] = (
         np.square(y_test - y_test.mean()).sum(axis=0) / y_test.shape[0]
     )
-    
-    results[k, 0] = k
-    results[k, 1] = opt_lambda
-    results[k, 2]  = Error_test_rlr[k]
-    results[k, 3] = Error_test_nofeatures[k]
-    
+
+    results[k, 0]  = k
+    results[k, 1]  = n_hidden_units
+    results[k, 2]  = mse
+    results[k, 3]  =opt_lambda
+    results[k, 4]  =Error_test_rlr[k]
+    results[k, 5]  =Error_test_nofeatures[k]
+   
     # Display the results for the last cross-validation fold
     if k == K - 1:
         
-        plt.title("Optimal lambda: 1e{0}".format(opt_lambda))
-        plt.plot(
-            lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
-        )
+        plt.title("Optimal lambda: 1e{0}".format(np.log10(opt_lambda)))
+        loglog(lambdas, train_err_vs_lambda.T, "b.-", lambdas, test_err_vs_lambda.T, "r.-"
+)
         plt.xlabel("Regularization factor")
         plt.ylabel("Squared error (crossvalidation)")
         plt.legend(["Train error", "Validation error"])
@@ -323,9 +273,8 @@ for train_index, test_index in CV.split(X_r, Y_r):
     k += 1
 show()
 
-
-print("the results is", results)
-
+print("First row of results:")
+print(results[0])
 slopes = []
 
 for i in range(len(lambdas) - 1):
@@ -344,3 +293,23 @@ print(
 )
 
 #-------------------------------------------------------------------------------------------------
+Error_test_rlr= Error_test_rlr.flatten()
+errors = np.array(errors)
+
+# Calculate the mean MSE for RLR and ANN
+mean_mse_rlr = np.mean(Error_test_rlr)
+print(len(Error_test_rlr))
+mean_mse_ann = np.mean(errors)
+print(len(errors))
+
+
+# Perform paired t-test
+t_statistic, p_value = stats.ttest_rel(Error_test_rlr, errors)
+
+# Calculate confidence interval for the mean difference
+confidence_interval = stats.t.interval(0.95, len(Error_test_rlr)-1, np.mean(Error_test_rlr) - np.mean(errors), stats.sem(Error_test_rlr - errors))
+
+print("Mean MSE for RLR:", mean_mse_rlr)
+print("Mean MSE for ANN:", mean_mse_ann)
+print("Paired t-test - t-statistic:", t_statistic, "p-value:", p_value)
+print("Confidence interval for mean difference:", confidence_interval)
